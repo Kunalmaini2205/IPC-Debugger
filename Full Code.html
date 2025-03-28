@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPC Debugger</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
+        .container { margin: 20px auto; width: 80%; }
+        .process, .pipe, .queue, .memory {
+            display: inline-block; width: 150px; height: 100px;
+            border: 2px solid #333; margin: 20px; padding: 10px;
+            background: white; text-align: center; line-height: 90px;
+            transition: background 0.5s;
+        }
+        .pipe, .queue, .memory {
+            width: 200px; height: 50px; border: 2px solid blue;
+            line-height: 50px; font-weight: bold;
+        }
+        .log { margin-top: 20px; padding: 10px; border: 1px solid black; 
+            background: rgb(97, 97, 238); height: 100px; overflow-y: auto; 
+            color: white; text-align: left;
+        }
+        button { margin: 10px; padding: 10px; cursor: pointer; font-size: 16px; }
+        .active { background: yellow !important; }
+    </style>
+</head>
+<body>
+    <h1>IPC Debugger</h1>
+    <div class="container">
+        <div class="process" id="p1">Process 1</div>
+        <div class="pipe" id="pipe">Pipe</div>
+        <div class="process" id="p2">Process 2</div>
+        <br>
+        <div class="process" id="p3">Process 3</div>
+        <div class="queue" id="queue">Message Queue</div>
+        <div class="process" id="p4">Process 4</div>
+        <br>
+        <div class="process" id="p5">Process 5</div>
+        <div class="memory" id="memory">Shared Memory</div>
+        <div class="process" id="p6">Process 6</div>
+    </div>
+    
+    <button onclick="simulatePipe()">Simulate Pipe</button>
+    <button onclick="simulateQueue()">Simulate Message Queue</button>
+    <button onclick="simulateMemory()">Simulate Shared Memory</button>
+    <button onclick="detectDeadlock()">Check Deadlock</button>
+    
+    <div class="log" id="log"></div>
+    
+    <script>
+        function logMessage(message) {
+            const log = document.getElementById("log");
+            log.innerHTML += message + "<br>";
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function highlightElement(id) {
+            let element = document.getElementById(id);
+            element.classList.add("active");
+            setTimeout(() => { element.classList.remove("active"); }, 1000);
+        }
+
+        function simulatePipe() {
+            logMessage("[Pipe] Process 1 sending data...");
+            highlightElement("p1");
+            highlightElement("pipe");
+            setTimeout(() => {
+                highlightElement("p2");
+                logMessage("[Pipe] Data transferred via pipe to Process 2");
+            }, 1000);
+        }
+
+        function simulateQueue() {
+            logMessage("[Queue] Process 3 enqueueing message...");
+            highlightElement("p3");
+            highlightElement("queue");
+            setTimeout(() => {
+                highlightElement("p4");
+                logMessage("[Queue] Message dequeued and received by Process 4");
+            }, 1500);
+        }
+
+        function simulateMemory() {
+            logMessage("[Memory] Process 5 writing to shared memory...");
+            highlightElement("p5");
+            highlightElement("memory");
+            setTimeout(() => {
+                highlightElement("p6");
+                logMessage("[Memory] Process 6 reading from shared memory");
+            }, 2000);
+        }
+
+        // Sample Resource Allocation Graph
+        let resourceGraph = {
+            "p1": ["pipe"], 
+            "pipe": ["p2"], 
+            "p3": ["queue"], 
+            "queue": ["p4"], 
+            "p5": ["memory"], 
+            "memory": ["p6"], 
+            "p6": ["p5"] // Introducing a cycle for deadlock detection
+        };
+
+        function detectDeadlock() {
+            let visited = new Set ();
+            let stack = new Set ();
+
+            function isCyclic(node) {
+                if (stack.has(node)) return true;
+                if (visited.has(node)) return false;
+
+                visited.add(node);
+                stack.add(node);
+
+                for (let neighbor of (resourceGraph[node] || [])) {
+                    if (isCyclic(neighbor)) return true;
+                }
+
+                stack.delete(node);
+                return false;
+            }
+
+            for (let node in resourceGraph) {
+                if (isCyclic(node)) {
+                    logMessage("⚠️ Deadlock detected!");
+                    alert ("Deadlock detected!");
+                    return;
+                }
+            }
+            logMessage("✅ No deadlock detected.");
+            alert ("No deadlock detected.");
+        }
+    </script>
+</body>
+</html>
